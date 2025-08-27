@@ -47,44 +47,52 @@ class AuthControler extends Controller
     }
 
 
-    public function registerRolPersona(Request $request)
-    {
-        //asignar rol a la persona
-        $validator = Validator::make($request->all(),[
-            'idPersona' => 'required|exists:personas,idPersona',
-            'idRol' => 'required|exists:rols,idRol'
-        ]);
+    // public function login(Request $request)
+    // {
+    //     //validar correo y contraseña
+    //     $validator = Validator::make($request->all(),[
+    //         'email' => 'required|email',
+    //         'password' => 'required|string|min:6'
+    //     ]);
 
-        if($validator->fails()) {
-            return response()->json($validator->errors(), 400);
-        }
+    //     if($validator->fails()) {
+    //         return response()->json($validator->errors(), 400);
+    //     }
 
-        $validated = $validator->validated();
+    //     $validated = $validator->validated();
 
-        $rolPersona = rolPersonas::create($validated);
-        return response()->json(['message' => 'Rol asignado exitosamente', 'rolPersona' => $rolPersona], 201);
-    }
+    //     $user = persona::where('email', $validated['email'])->first();
+    //     if(!$user || !Hash::check($validated['password'], $user->password)) {
+    //         return response()->json(['message' => 'Credenciales inválidas'], 401);
+    //     }
+
+    //     $token = $user->createToken('default', ['*'])->plainTextToken;
+
+        
+    // }
 
     public function login(Request $request)
     {
-        $validator = Validator::make($request->all(),[
+        $validate = Validator::make($request->all(), [
             'email' => 'required|email',
-            'password' => 'required|string|min:6'
+            'password' => 'required|string|min:6',
         ]);
 
-        if($validator->fails()) {
-            return response()->json($validator->errors(), 400);
+        if ($validate->fails()) {
+            return response()->json(['errors' => $validate->errors()], 422);
         }
 
-        $validated = $validator->validated();
+        $user = persona::where('email', $request->email)->first();
 
-        $user = persona::where('email', $validated['email'])->first();
-
-        if(!$user || !Hash::check($validated['password'], $user->password)) {
-            return response()->json(['error' => 'Credenciales inválidas'], 401);
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json(['message' => 'Credenciales inválidas'], 401);
         }
 
-        $token = $user->createToken('default', ['*'])->plainTextToken;
-        return response()->json(['message' => 'Inicio de sesión exitoso', 'user' => $user, 'token'=>$token], 200);
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'access_token' => $token,
+            'token_type' => 'Bearer',
+        ]);
     }
 }
